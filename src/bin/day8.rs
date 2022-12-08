@@ -3,8 +3,7 @@ use anyhow::Result;
 fn main() ->  Result<()> {
     let input = include_str!("day8.input");
     let mut matrix: Vec<Vec<i8>> = vec![];
-    let mut pairs: Vec<(usize, usize)> = vec![];
-    let mut sum = 0;
+    let mut max_score = 0;
 
     // init matrix
     for line in input.lines() {
@@ -15,74 +14,52 @@ fn main() ->  Result<()> {
         matrix.push(row);
     }
 
-    // horizontal
-    for (i, row) in matrix.iter().enumerate() {
-        let mut start = 0;
-        let mut last_left = 0;
-        let mut max_left: i8 = -1;
+    let rows = matrix.len();
+    let cols = matrix[0].len();
 
-        // 30373
-        while start < row.len() {
-            let left = row[start];
-            if max_left < left {
-                max_left = left;
-                last_left = start;
-                pairs.push((i, start));
-            }
-            
-            start += 1;
-        }
-
-        let mut end = row.len() - 1;
-        let mut max_right: i8 = -1;
-
-        while end > last_left {
-            let right = row[end];
-            if max_right < right {
-                max_right = right;
-                pairs.push((i, end));
+    for i in 0..rows {
+        for j in 0..cols {
+            // compare matrix[i][j] with all above
+            let mut up = 0;
+            for k in (0..i).rev() {
+                up += 1;
+                if matrix[i][j] <= matrix[k][j] {
+                    break;
+                }
             }
 
-            end -= 1;
-        }
-    }
-
-    // vertical
-    for i in 0..matrix[0].len() {
-        let mut start = 0;
-        let mut last_top = 0;
-        let mut max_top: i8 = -1;
-
-        while start < matrix.len() {
-            let top = matrix[start][i];
-            if max_top < top {
-                max_top = top;
-                last_top = start;
-                pairs.push((start, i));
-            }
-            
-            start += 1;
-        }
-
-        let mut end = matrix.len() - 1;
-        let mut max_bottom: i8 = -1;
-
-        while end > last_top {
-            let bottom = matrix[end][i];
-            if max_bottom < bottom {
-                max_bottom = bottom;
-                pairs.push((end, i));
+            // compare matrix[i][j] with all below
+            let mut down = 0;
+            for k in i+1..rows {
+                down += 1;
+                if matrix[i][j] <= matrix[k][j] {
+                    break;
+                }
             }
 
-            end -= 1;
+            // compare matrix[i][j] with all left
+            let mut left = 0;
+            for k in (0..j).rev() {
+                left += 1;
+                if matrix[i][j] <= matrix[i][k] {
+                    break;
+                }
+            }
+
+            // compare matrix[i][j] with all right
+            let mut right = 0;
+            for k in j+1..cols {
+                right += 1;
+                if matrix[i][j] <= matrix[i][k] {
+                    break;
+                }
+            }
+
+            max_score = std::cmp::max(max_score, up * down * left * right);
         }
     }
-
-    // count unique pairs
-    pairs.sort();
-    pairs.dedup();
-
-    println!("sum: {}", pairs.len());
+  
+    println!("max score: {}", max_score);
 
     return Ok(());
 }
