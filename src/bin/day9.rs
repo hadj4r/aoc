@@ -1,7 +1,6 @@
 use std::{str::FromStr, collections::HashSet};
 
 use anyhow::Result;
-use itertools::Itertools;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 enum Direction {
@@ -42,64 +41,54 @@ impl FromStr for Move {
     }
 }
 
+fn get_delta(direction: &Direction) -> (i16, i16) {
+    match direction {
+        Direction::Up => (0, 1),
+        Direction::Down => (0, -1),
+        Direction::Left => (-1, 0),
+        Direction::Right => (1, 0),
+    }
+}
+
+fn sign(x: i16) -> i16 {
+    if x > 0 {
+        1
+    } else if x < 0 {
+        -1
+    } else {
+        0
+    }
+}
+
 fn main() -> Result<()> {
     let input = include_str!("day9.input");
-    let mut unique_points: HashSet<(i16, i16)> = HashSet::new();
-    let mut tail = (0, 0);
-    let mut head = (0, 0);
-    unique_points.insert(tail);
+    let mut rope = vec![(0, 0); 10];
+    let mut tails = HashSet::new();
+    tails.insert((0, 0));
 
     input.lines()
-        .map(Move::from_str)
-        .map(Result::unwrap)
+        .map(|s| s.parse::<Move>().unwrap())
         .for_each(|m| {
-            // println!("== {:?} {} ==", m.direction, m.distance);
-            head = match m.direction {
-                Direction::Up => (head.0, head.1 + m.distance),
-                Direction::Down => (head.0, head.1 - m.distance),
-                Direction::Left => (head.0 - m.distance, head.1),
-                Direction::Right => (head.0 + m.distance, head.1),
-            };
+            for _ in 0..m.distance {
+                let (hx, hy) = rope[0];
+                let (dx, dy) = get_delta(&m.direction);
+                rope[0] = (hx + dx, hy + dy);
 
-            // distance between tail and head must not be greater than 1
-            // if it is, we need to move the tail closer to the head
-            // until the distance is 1
-            while (tail.0 - head.0).abs() + (tail.1 - head.1).abs() > 1
-                && (tail.0 - head.0).abs() != (tail.1 - head.1).abs()  {
-                // print!("{:?}", tail);
-                // move tail closer to head until distance is 1, tail can move in any direction as long as it's closer to head including diagonally
-                tail = if tail.0 > head.0 {
-                    if tail.1 > head.1 {
-                        (tail.0 - 1, tail.1 - 1)
-                    } else if tail.1 < head.1 {
-                        (tail.0 - 1, tail.1 + 1)
-                    } else {
-                        (tail.0 - 1, tail.1)
+                for i in 0..9 {
+                    let (hx, hy) = rope[i];
+                    let (tx, ty) = rope[i + 1];
+                    let (dx, dy) = (hx - tx, hy - ty);
+                    
+                    if dx.pow(2) + dy.pow(2) > 2 {
+                        rope[i + 1] = (tx + sign(dx), ty + sign(dy));
                     }
-                } else if tail.0 < head.0 {
-                    if tail.1 > head.1 {
-                        (tail.0 + 1, tail.1 - 1)
-                    } else if tail.1 < head.1 {
-                        (tail.0 + 1, tail.1 + 1)
-                    } else {
-                        (tail.0 + 1, tail.1)
-                    }
-                } else {
-                    if tail.1 > head.1 {
-                        (tail.0, tail.1 - 1)
-                    } else if tail.1 < head.1 {
-                        (tail.0, tail.1 + 1)
-                    } else {
-                        (tail.0, tail.1)
-                    }
-                };
-                
-                // println!(" -> {:?}", tail);
-                unique_points.insert(tail);
+                }
+
+                tails.insert(rope[9]);
             }
-            // println!("head: {:?}", head);
         });
-        println!("{:?}", unique_points.len());
 
-    Ok(())
+        println!("tails: {}", tails.len());
+        
+        Ok(())
 }
